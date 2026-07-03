@@ -58,3 +58,33 @@ def build_model(config: dict):
     if model_type not in MODEL_BUILDERS:
         raise ValueError(f"Modèle inconnu : {model_type}")
     return MODEL_BUILDERS[model_type](config)
+
+
+def train_one(config: dict, X_train, y_train) -> str:
+    with mlflow.start_run() as run:
+        # 1. Log des hyperparamètres (tous les champs du config, sauf "type")
+        mlflow.log_param("model_type", config["type"])
+        for key, value in config.items():
+            if key != "type":
+                mlflow.log_param(key, value)
+
+        # 2. Entraînement
+        model = build_model(config)
+        model.fit(X_train, y_train)
+
+        # 3. Métrique rapide sur le train (juste indicative, l'éval réelle
+        #    se fait dans evaluate.py sur le jeu de test)
+        train_r2 = model.score(X_train, y_train)
+        mlflow.log_metric("train_r2", train_r2)
+        print(f"[train] {config} -> Train R2 : {train_r2:.4f}")
+
+        # 4. Log du modèle produit
+        # serialization_format="pickle" : évite le rejet par MLflow des types
+        # internes (ex. KDTree de KNeighborsRegressor) non "trusted" par le
+        # format skops par défaut. Sûr ici car on ne charge que nos propres
+        # modèles, jamais des artefacts externes non fiables.
+        mlflow.sklearn.log_model(
+            model, "model", serialization_format=mlflow.sklearn.SERIALIZATION_FORMAT_PICKLE
+        )
+
+        return run.info.run_id
