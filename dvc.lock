@@ -6,8 +6,8 @@ stages:
     deps:
     - path: data/raw/Student_performance_data.csv
       hash: md5
-      md5: fe8bac208c3122bba88eb72aa84dd047
-      size: 166901
+      md5: 68dc7283722a3ff4c7dd847113a5b62b
+      size: 141322
     - path: src/preprocess.py
       hash: md5
       md5: 2efb00bce3fe0dc8bf690d8f76f19213
@@ -15,19 +15,19 @@ stages:
     outs:
     - path: data/processed/test.csv
       hash: md5
-      md5: 10265b1dd22af7b77ab11c7169f5fb73
-      size: 20363
+      md5: 65e9a1ed0ef408ae75a62cd2ed6c80c7
+      size: 17262
     - path: data/processed/train.csv
       hash: md5
-      md5: 8e8263f61d9c348e2b5bb5c66bafb4f7
-      size: 81272
+      md5: 733f2adda89a4ebf4e917d9147255e70
+      size: 69020
   train:
     cmd: python src/train.py
     deps:
     - path: data/processed/train.csv
       hash: md5
-      md5: 8e8263f61d9c348e2b5bb5c66bafb4f7
-      size: 81272
+      md5: 733f2adda89a4ebf4e917d9147255e70
+      size: 69020
     - path: src/train.py
       hash: md5
       md5: 44903e20dd87a9bd6cf9de42080a73b7
@@ -60,18 +60,18 @@ stages:
     outs:
     - path: metrics/last_run_ids.txt
       hash: md5
-      md5: 4f3c7a8ee67dc0cb650be47e19de4c84
+      md5: 5f3c37661bc408d5b6b51ec56d62c20c
       size: 263
   evaluate:
     cmd: python src/evaluate.py
     deps:
     - path: data/processed/test.csv
       hash: md5
-      md5: 10265b1dd22af7b77ab11c7169f5fb73
-      size: 20363
+      md5: 65e9a1ed0ef408ae75a62cd2ed6c80c7
+      size: 17262
     - path: metrics/last_run_ids.txt
       hash: md5
-      md5: 4f3c7a8ee67dc0cb650be47e19de4c84
+      md5: 5f3c37661bc408d5b6b51ec56d62c20c
       size: 263
     - path: src/evaluate.py
       hash: md5
@@ -80,5 +80,5 @@ stages:
     outs:
     - path: metrics/eval.json
       hash: md5
-      md5: e12dd72ac0ab35e9ebf9f7f919361fcc
+      md5: 19c46cf2bf25a45aa23fec2d85768a9f
       size: 1433
