@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prédiction du GPA — MLOps</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --card-2: #273449;
+      --accent: #6366f1;
+      --accent-2: #8b5cf6;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --ok: #22c55e;
+      --line: #334155;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(1200px 600px at 50% -10%, #1e293b, var(--bg));
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .wrap { width: 100%; max-width: 860px; }
+    .header { text-align: center; margin-bottom: 28px; }
+    .header h1 { font-size: 1.9rem; font-weight: 700; letter-spacing: -0.02em; }
+    .header .grad {
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .header p { color: var(--muted); margin-top: 8px; font-size: 0.95rem; }
+    .badge {
+      display: inline-block; margin-top: 12px; padding: 4px 12px;
+      background: var(--card-2); border: 1px solid var(--line);
+      border-radius: 999px; font-size: 0.78rem; color: var(--muted);
+    }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+    .card {
+      background: var(--card); border: 1px solid var(--line);
+      border-radius: 16px; padding: 24px;
+    }
+    .card h2 { font-size: 1rem; margin-bottom: 18px; font-weight: 600; }
+    .field { margin-bottom: 18px; }
+    .field label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; }
+    .field input {
+      width: 100%; padding: 11px 13px; font-size: 1rem;
+      background: var(--card-2); color: var(--text);
+      border: 1px solid var(--line); border-radius: 10px; outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(99,102,241,.25); }
+    .field .hint { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+    button {
+      width: 100%; padding: 13px; font-size: 1rem; font-weight: 600;
+      color: white; border: none; border-radius: 10px; cursor: pointer;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: transform .08s, opacity .15s;
+    }
+    button:hover { opacity: .93; }
+    button:active { transform: translateY(1px); }
+    button:disabled { opacity: .6; cursor: not-allowed; }
+    .result { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+    .gauge { position: relative; width: 180px; height: 180px; margin: 6px 0 16px; }
+    .gauge svg { transform: rotate(-90deg); }
+    .gauge .val {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .gauge .val .num { font-size: 2.4rem; font-weight: 700; }
+    .gauge .val .scale { font-size: 0.8rem; color: var(--muted); }
+    .result .label { color: var(--muted); font-size: 0.9rem; }
+    .result .empty { color: var(--muted); font-size: 0.95rem; padding: 40px 0; }
+    .err { color: #f87171; font-size: 0.85rem; margin-top: 8px; min-height: 1em; }
+    .footer { text-align: center; color: var(--muted); font-size: 0.75rem; margin-top: 22px; }
+    .footer code { background: var(--card-2); padding: 2px 6px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <h1>🎓 Prédiction du <span class="grad">GPA</span></h1>
+      <p>Estime la moyenne d'un étudiant à partir de son assiduité et de son temps d'étude.</p>
+      <span class="badge">Modèle : {{ model_name }}{% if metrics and metrics.r2 %} · R² = {{ "%.3f"|format(metrics.r2) }}{% endif %}</span>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Paramètres de l'étudiant</h2>
+        <form id="form">
+          <div class="field">
+            <label for="StudyTimeWeekly">Temps d'étude hebdomadaire (heures)</label>
+            <input type="number" id="StudyTimeWeekly" name="StudyTimeWeekly" step="0.1" min="0" max="25" value="10" required>
+            <div class="hint">Typiquement entre 0 et 20 h / semaine</div>
+          </div>
+          <div class="field">
+            <label for="Age">Âge</label>
+            <input type="number" id="Age" name="Age" step="1" min="14" max="20" value="17" required>
+            <div class="hint">Entre 15 et 18 ans</div>
+          </div>
+          <div class="field">
+            <label for="Absences">Nombre d'absences</label>
+            <input type="number" id="Absences" name="Absences" step="1" min="0" max="40" value="5" required>
+            <div class="hint">Sur l'année scolaire</div>
+          </div>
+          <button type="submit" id="btn">Prédire le GPA</button>
+          <div class="err" id="err"></div>
+        </form>
+      </div>
+
+      <div class="card result">
+        <div id="empty" class="empty">Renseignez les champs puis lancez la prédiction.</div>
+        <div id="output" style="display:none; width:100%;">
+          <div class="gauge">
+            <svg width="180" height="180" viewBox="0 0 180 180">
+              <circle cx="90" cy="90" r="78" fill="none" stroke="#334155" stroke-width="14"/>
+              <circle id="arc" cx="90" cy="90" r="78" fill="none" stroke="url(#g)" stroke-width="14"
+                      stroke-linecap="round" stroke-dasharray="490" stroke-dashoffset="490"/>
+              <defs>
+                <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#6366f1"/>
+                  <stop offset="100%" stop-color="#8b5cf6"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="val">
+              <div class="num" id="gpa">–</div>
+              <div class="scale">/ 4.0</div>
+            </div>
+          </div>
+          <div class="label" id="verdict"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      API : <code>POST /predict</code> · JSON <code>{ StudyTimeWeekly, Age, Absences }</code>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('form');
+    const btn = document.getElementById('btn');
+    const err = document.getElementById('err');
+    const empty = document.getElementById('empty');
+    const output = document.getElementById('output');
+    const gpaEl = document.getElementById('gpa');
+    const arc = document.getElementById('arc');
+    const verdict = document.getElementById('verdict');
+    const CIRC = 490; // ~ 2 * PI * 78
+
+    function setVerdict(gpa) {
+      if (gpa >= 3.3) return ['Excellent 🌟', '#22c55e'];
+      if (gpa >= 2.5) return ['Bon niveau 👍', '#6366f1'];
+      if (gpa >= 1.7) return ['Moyen — à surveiller', '#f59e0b'];
+      return ['À risque ⚠️', '#f87171'];
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      err.textContent = '';
+      btn.disabled = true; btn.textContent = 'Calcul…';
+      const payload = {
+        StudyTimeWeekly: parseFloat(form.StudyTimeWeekly.value),
+        Age: parseFloat(form.Age.value),
+        Absences: parseFloat(form.Absences.value),
+      };
+      try {
+        const res = await fetch('/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Erreur serveur');
+
+        const gpa = data.gpa;
+        empty.style.display = 'none';
+        output.style.display = 'block';
+        gpaEl.textContent = gpa.toFixed(2);
+        const [txt, color] = setVerdict(gpa);
+        verdict.textContent = txt;
+        verdict.style.color = color;
+        const offset = CIRC * (1 - Math.max(0, Math.min(4, gpa)) / 4);
+        arc.style.transition = 'stroke-dashoffset .7s ease';
+        arc.style.strokeDashoffset = offset;
+      } catch (ex) {
+        err.textContent = ex.message;
+      } finally {
+        btn.disabled = false; btn.textContent = 'Prédire le GPA';
+      }
+    });
+  </script>
+</body>
+</html>
