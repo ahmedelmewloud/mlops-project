@@ -1,18 +1,21 @@
-# 🎓 Student GPA Prediction - MLOps Pipeline
+# Student GPA Prediction - MLOps Pipeline
 
-## 📊 Présentation du problème
+## Présentation du problème
 
 **Problème ML** : Régression — prédire le **GPA** (moyenne) d'un étudiant.
 **Dataset** : `Student_performance_data.csv` — features utilisées : `StudyTimeWeekly`, `Age`, `Absences`.
 **Objectif** : Aider à identifier les étudiants à risque en fonction de leur temps d'étude et de leur assiduité.
 
-## 🏗️ Architecture technique
+## Architecture technique
 
-- **EC2 `mlflow-server-mlops`** (t3.small, eu-west-3) : héberge à la fois le serveur MLflow
+- **EC2 `mlflow-server-mlops`** (t3.medium, eu-west-3) : héberge à la fois le serveur MLflow
   Tracking (port 5000, tracking + Model Registry) et l'application Flask de prédiction
   (port 8000). Les deux tournent en `systemd` (`mlflow.service`, `flaskapp.service`),
   redémarrage automatique en cas de crash. Une seule machine partagée pour tout le groupe,
-  conformément à la consigne "ne pas multiplier les instances".
+  conformément à la consigne "ne pas multiplier les instances". Le serveur MLflow est exposé
+  au-delà de `localhost`, donc `--allowed-hosts` et `--cors-allowed-origins` sont explicitement
+  configurés avec l'IP publique de l'instance (sinon MLflow 3.x bloque les requêtes par défaut,
+  protection anti DNS-rebinding / CORS).
 - **S3 (`mlops-projects-4`)** : remote DVC (`s3://mlops-projects-4/dvc-store`) pour les
   données prétraitées et les artefacts versionnés.
 - **DVC** : pipeline reproductible (`dvc.yaml` : preprocess → train → evaluate), au moins
@@ -20,7 +23,7 @@
   `git checkout <tag> && dvc checkout`).
 - **GitHub** : code, historique de collaboration (branches personnelles + merges vers `main`).
 
-## ⚙️ Installation et reproduction
+## Installation et reproduction
 
 ```bash
 # 1. Cloner le repo
@@ -53,12 +56,12 @@ git checkout data-v1   # ou data-v2
 dvc checkout
 ```
 
-## 🔗 Liens d'accès
+## Liens d'accès
 - **MLflow UI** : http://51.44.106.147:5000
 - **Application Flask** : http://51.44.106.147:8000
 - **Repository GitHub** : https://github.com/ahmedelmewloud/mlops-project
 
-## 📁 Structure du projet
+## Structure du projet
 ```
 ├── data/raw/            # Données brutes (Student_performance_data.csv, versionné DVC + Git)
 ├── data/processed/      # train.csv / test.csv (générés, cachés par DVC)
@@ -74,10 +77,3 @@ dvc checkout
 ├── params.yaml            # Hyperparamètres des modèles candidats
 └── requirements.txt
 ```
-
-## 👥 Équipe
-| Membre | Contribution |
-|---|---|
-| 22013 | Infrastructure (EC2 MLflow + Flask, S3, DVC), `evaluate.py`, `app.py`, déploiement, merges vers `main` |
-| 22024 | `preprocess.py`, `app.py` (v1), `build_model.py` |
-| 22051 | `evaluate.py` (squelette initial) |
