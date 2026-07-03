@@ -1,38 +1,42 @@
 """
 Application Flask de prédiction du GPA.
 
-Charge le modèle sérialisé (models/model.joblib, produit par
-src/build_model.py) et l'expose via :
+Charge le modèle enregistré comme "champion" dans le MLflow Model Registry
+(produit par src/evaluate.py) et l'expose via :
   - GET  /            page HTML avec un formulaire
   - POST /predict     endpoint JSON : {StudyTimeWeekly, Age, Absences} -> GPA
   - GET  /health      statut du service
 
 Usage:
     python app/app.py                 # http://localhost:8000
-    MODEL_PATH=models/model.joblib PORT=8000 python app/app.py
+    MLFLOW_TRACKING_URI=http://<ip>:5000 PORT=8000 python app/app.py
 """
 
 import os
 
-import joblib
+import mlflow
 import pandas as pd
 from flask import Flask, jsonify, render_template, request
+from mlflow.tracking import MlflowClient
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.dirname(BASE_DIR)
-MODEL_PATH = os.environ.get(
-    "MODEL_PATH", os.path.join(PROJECT_ROOT, "models", "model.joblib")
-)
+FEATURES = ["StudyTimeWeekly", "Age", "Absences"]
+MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI", "http://localhost:5000")
+REGISTERED_MODEL_NAME = "student_gpa_model"
+MODEL_ALIAS = "champion"
 
 app = Flask(__name__)
 
 # Chargé une seule fois au démarrage.
-_payload = joblib.load(MODEL_PATH)
-MODEL = _payload["model"]
-FEATURES = _payload["features"]
-MODEL_NAME = _payload.get("model_name", "unknown")
-METRICS = _payload.get("metrics", {})
-print(f"[app] Modèle chargé : {MODEL_NAME} | features={FEATURES} | metrics={METRICS}")
+mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+_client = MlflowClient()
+_version = _client.get_model_version_by_alias(REGISTERED_MODEL_NAME, MODEL_ALIAS)
+MODEL = mlflow.pyfunc.load_model(f"models:/{REGISTERED_MODEL_NAME}@{MODEL_ALIAS}")
+MODEL_NAME = _client.get_run(_version.run_id).data.params.get("model_type", "unknown")
+METRICS = _client.get_run(_version.run_id).data.metrics
+print(
+    f"[app] Modele charge : {REGISTERED_MODEL_NAME}@{MODEL_ALIAS} "
+    f"(v{_version.version}, type={MODEL_NAME}) | metrics={METRICS}"
+)
 
 
 @app.route("/")
@@ -64,4 +68,5 @@ def health():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    debug = os.environ.get("FLASK_DEBUG", "false").lower() == "true"
+    app.run(host="0.0.0.0", port=port, debug=debug)
