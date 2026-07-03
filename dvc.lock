@@ -1,0 +1,84 @@
+schema: '2.0'
+stages:
+  preprocess:
+    cmd: python src/preprocess.py --input data/raw/Student_performance_data.csv 
+      --output-dir data/processed
+    deps:
+    - path: data/raw/Student_performance_data.csv
+      hash: md5
+      md5: 68dc7283722a3ff4c7dd847113a5b62b
+      size: 141322
+    - path: src/preprocess.py
+      hash: md5
+      md5: 2efb00bce3fe0dc8bf690d8f76f19213
+      size: 1931
+    outs:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 65e9a1ed0ef408ae75a62cd2ed6c80c7
+      size: 17262
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 733f2adda89a4ebf4e917d9147255e70
+      size: 69020
+  train:
+    cmd: python src/train.py
+    deps:
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 733f2adda89a4ebf4e917d9147255e70
+      size: 69020
+    - path: src/train.py
+      hash: md5
+      md5: 44903e20dd87a9bd6cf9de42080a73b7
+      size: 4353
+    params:
+      params.yaml:
+        train:
+          models:
+          - type: linear
+          - type: ridge
+            alpha: 1.0
+          - type: lasso
+            alpha: 0.1
+          - type: svr
+            kernel: linear
+            C: 1.0
+            epsilon: 0.1
+          - type: svr
+            kernel: rbf
+            C: 10.0
+            epsilon: 0.2
+          - type: decision_tree
+            max_depth: 5
+            min_samples_leaf: 5
+          - type: random_forest
+            n_estimators: 200
+            max_depth: 8
+          - type: knn
+            n_neighbors: 10
+    outs:
+    - path: metrics/last_run_ids.txt
+      hash: md5
+      md5: 5f3c37661bc408d5b6b51ec56d62c20c
+      size: 263
+  evaluate:
+    cmd: python src/evaluate.py
+    deps:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 65e9a1ed0ef408ae75a62cd2ed6c80c7
+      size: 17262
+    - path: metrics/last_run_ids.txt
+      hash: md5
+      md5: 5f3c37661bc408d5b6b51ec56d62c20c
+      size: 263
+    - path: src/evaluate.py
+      hash: md5
+      md5: 8ba08fd8dc23a9de99d7226c5fdec21a
+      size: 4463
+    outs:
+    - path: metrics/eval.json
+      hash: md5
+      md5: 19c46cf2bf25a45aa23fec2d85768a9f
+      size: 1433

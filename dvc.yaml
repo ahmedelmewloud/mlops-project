@@ -14,7 +14,7 @@ stages:
       - src/train.py
       - data/processed/train.csv
     params:
-      - params.yaml
+      - params.yaml:
     outs:
       - metrics/last_run_ids.txt:
           cache: false
