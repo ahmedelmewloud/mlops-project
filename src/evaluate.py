@@ -40,3 +40,21 @@ def get_run_ids(args) -> list:
         return [args.run_id]
     with open("metrics/last_run_ids.txt") as f:
         return [line.strip() for line in f if line.strip()]
+
+def get_best_registered_rmse(client: MlflowClient) -> float:
+    """Renvoie le RMSE test du modèle actuellement en production/latest.
+    Si aucun modèle n'est encore enregistré, renvoie +infini (pour que
+    le premier modèle soit toujours enregistré)."""
+    try:
+        versions = client.search_model_versions(f"name='{REGISTERED_MODEL_NAME}'")
+        if not versions:
+            return float("inf")
+        best_rmse = float("inf")
+        for v in versions:
+            run = client.get_run(v.run_id)
+            rmse = run.data.metrics.get("test_rmse")
+            if rmse is not None and rmse < best_rmse:
+                best_rmse = rmse
+        return best_rmse
+    except mlflow.exceptions.MlflowException:
+        return float("inf")
