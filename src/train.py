@@ -88,3 +88,36 @@ def train_one(config: dict, X_train, y_train) -> str:
         )
 
         return run.info.run_id
+
+
+def train(args):
+    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
+    mlflow.set_experiment(EXPERIMENT_NAME)
+
+    with open(args.params) as f:
+        params = yaml.safe_load(f)
+    model_configs = params["train"]["models"]
+
+    train_df = pd.read_csv(args.train_data)
+    X_train = train_df[FEATURES]
+    y_train = train_df[TARGET]
+
+    run_ids = [train_one(config, X_train, y_train) for config in model_configs]
+
+    # On écrit les run_ids dans un fichier pour que evaluate.py compare
+    # tous les runs de ce batch entre eux et ne registre que le meilleur
+    os.makedirs("metrics", exist_ok=True)
+    with open("metrics/last_run_ids.txt", "w") as f:
+        f.write("\n".join(run_ids))
+
+    print(f"[train] {len(run_ids)} run(s) loggé(s) : {run_ids}")
+    return run_ids
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--train-data", default="data/processed/train.csv")
+    parser.add_argument("--params", default="params.yaml")
+    args = parser.parse_args()
+
+    train(args)
