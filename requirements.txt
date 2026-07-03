@@ -1,0 +1,7 @@
+mlflow
+boto3
+dvc[s3]
+pandas
+scikit-learn
+flask
+pyyaml

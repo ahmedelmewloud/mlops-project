@@ -1,0 +1,30 @@
+train:
+  models:
+    - type: linear
+
+    - type: ridge
+      alpha: 1.0
+
+    - type: lasso
+      alpha: 0.1
+
+    - type: svr
+      kernel: linear
+      C: 1.0
+      epsilon: 0.1
+
+    - type: svr
+      kernel: rbf
+      C: 10.0
+      epsilon: 0.2
+
+    - type: decision_tree
+      max_depth: 5
+      min_samples_leaf: 5
+
+    - type: random_forest
+      n_estimators: 200
+      max_depth: 8
+
+    - type: knn
+      n_neighbors: 10

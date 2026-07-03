@@ -1,0 +1,30 @@
+stages:
+  preprocess:
+    cmd: python src/preprocess.py --input data/raw/Student_performance_data.csv --output-dir data/processed
+    deps:
+      - src/preprocess.py
+      - data/raw/Student_performance_data.csv
+    outs:
+      - data/processed/train.csv
+      - data/processed/test.csv
+
+  train:
+    cmd: python src/train.py
+    deps:
+      - src/train.py
+      - data/processed/train.csv
+    params:
+      - params.yaml
+    outs:
+      - metrics/last_run_ids.txt:
+          cache: false
+
+  evaluate:
+    cmd: python src/evaluate.py
+    deps:
+      - src/evaluate.py
+      - data/processed/test.csv
+      - metrics/last_run_ids.txt
+    metrics:
+      - metrics/eval.json:
+          cache: false
