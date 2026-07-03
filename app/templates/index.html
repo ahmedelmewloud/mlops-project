@@ -87,7 +87,6 @@
     <div class="header">
       <h1>🎓 Prédiction du <span class="grad">GPA</span></h1>
       <p>Estime la moyenne d'un étudiant à partir de son assiduité et de son temps d'étude.</p>
-      <span class="badge">Modèle : {{ model_name }}{% if metrics and metrics.r2 %} · R² = {{ "%.3f"|format(metrics.r2) }}{% endif %}</span>
     </div>
 
     <div class="grid">
@@ -139,9 +138,6 @@
       </div>
     </div>
 
-    <div class="footer">
-      API : <code>POST /predict</code> · JSON <code>{ StudyTimeWeekly, Age, Absences }</code>
-    </div>
   </div>
 
   <script>
